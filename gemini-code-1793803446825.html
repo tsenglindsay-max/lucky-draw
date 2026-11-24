@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGI Lucky Draw - Spin to Win!</title>
+  <style>
+    :root {
+      --mgi-navy: #0A192F;
+      --mgi-deep-blue: #0B132B;
+      --mgi-cyan: #00A3E0;
+      --mgi-bright-cyan: #00D2FF;
+      --mgi-white: #FFFFFF;
+      --mgi-gold: #FFD700;
+      --mgi-card-bg: rgba(10, 25, 47, 0.95);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at center, var(--mgi-navy) 0%, var(--mgi-deep-blue) 100%);
+      color: var(--mgi-white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Header */
+    header {
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 2px solid var(--mgi-cyan);
+      user-select: none;
+    }
+
+    .brand-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--mgi-white);
+      text-shadow: 0 0 12px rgba(0, 210, 255, 0.6);
+      cursor: pointer; /* Secret tap area for admin */
+      display: inline-block;
+    }
+
+    .brand-title span {
+      color: var(--mgi-bright-cyan);
+    }
+
+    /* Main Container */
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+    }
+
+    /* Mascot Section */
+    .mascot-container {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .jojo-avatar {
+      width: 110px;
+      height: 110px;
+      background: #ffffff;
+      border-radius: 50%;
+      border: 4px solid var(--mgi-bright-cyan);
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 65px;
+      margin: 0 auto 10px auto;
+      animation: bounce 2s infinite ease-in-out;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .welcome-text {
+      font-size: 1.2rem;
+      color: #A0AEC0;
+      font-weight: 500;
+    }
+
+    /* Wheel Section */
+    .wheel-wrapper {
+      position: relative;
+      width: 340px;
+      height: 340px;
+      margin: 20px 0;
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 32px solid var(--mgi-gold);
+      z-index: 10;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 6px solid var(--mgi-bright-cyan);
+      box-shadow: 0 0 35px rgba(0, 163, 224, 0.4);
+      transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 1);
+    }
+
+    /* Spin Button */
+    .spin-btn {
+      margin-top: 20px;
+      padding: 16px 48px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #0A192F;
+      background: linear-gradient(135deg, var(--mgi-bright-cyan), var(--mgi-cyan));
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.6);
+      transition: all 0.2s ease;
+      letter-spacing: 1.5px;
+    }
+
+    .spin-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 35px rgba(0, 210, 255, 0.9);
+    }
+
+    .spin-btn:disabled {
+      background: #4A5568;
+      color: #A0AEC0;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Winner Popup Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .prize-card {
+      background: var(--mgi-card-bg);
+      border: 3px solid var(--mgi-bright-cyan);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 420px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 210, 255, 0.4);
+      transform: scale(0.8);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .prize-card {
+      transform: scale(1);
+    }
+
+    .card-header {
+      font-size: 1rem;
+      color: var(--mgi-bright-cyan);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .prize-image-box {
+      width: 100%;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin: 15px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+    }
+
+    .prize-image-box img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .prize-icon-fallback {
+      font-size: 90px;
+    }
+
+    .prize-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 10px;
+    }
+
+    .verify-code {
+      font-family: monospace;
+      font-size: 1.1rem;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--mgi-bright-cyan);
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+
+    .claim-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      background: var(--mgi-cyan);
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .claim-btn:hover {
+      background: var(--mgi-bright-cyan);
+    }
+
+    .claimed-status {
+      display: none;
+      margin-top: 15px;
+      padding: 10px;
+      background: #E53E3E;
+      color: white;
+      font-weight: 800;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* Admin Password & Panel */
+    .admin-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      display: none;
+    }
+
+    .admin-box {
+      background: var(--mgi-navy);
+      border: 2px solid var(--mgi-cyan);
+      padding: 25px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 450px;
+    }
+
+    .admin-box h3 {
+      color: var(--mgi-bright-cyan);
+      margin-bottom: 15px;
+    }
+
+    .admin-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--mgi-cyan);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .admin-item-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .admin-item-row input[type="text"] {
+      flex: 2;
+    }
+
+    .admin-item-row input[type="number"] {
+      flex: 1;
+    }
+
+    .admin-btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    footer {
+      padding: 15px;
+      font-size: 0.85rem;
+      color: #718096;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <!-- Triple click on MGI title opens secret admin password modal -->
+    <div class="brand-title" id="brandHeader">MGI <span>LUCKY DRAW</span></div>
+  </header>
+
+  <div class="container">
+    <div class="mascot-container">
+      <div class="jojo-avatar">🐼</div>
+      <div class="welcome-text">MGI JOJO invites you to spin!</div>
+    </div>
+
+    <div class="wheel-wrapper">
+      <div class="wheel-pointer"></div>
+      <canvas id="wheelCanvas" width="400" height="400"></canvas>
+    </div>
+
+    <button class="spin-btn" id="spinBtn">SPIN TO WIN!</button>
+  </div>
+
+  <footer>
+    &copy; 2026 MGI Tech Co., Ltd. All Rights Reserved.
+  </footer>
+
+  <!-- Winner Modal -->
+  <div class="modal-overlay" id="prizeModal">
+    <div class="prize-card">
+      <div class="card-header">Congratulations!</div>
+      <div class="prize-title" id="modalPrizeTitle">Mousepad</div>
+      
+      <div class="prize-image-box" id="modalImageContainer">
+        <!-- Image or fallback icon will be rendered dynamically -->
+      </div>
+
+      <div class="verify-code" id="modalVerifyCode">#MGI-8821</div>
+
+      <button class="claim-btn" id="claimBtn">Staff Verification (Mark as Claimed)</button>
+      <div class="claimed-status" id="claimedBadge">VERIFIED & CLAIMED</div>
+    </div>
+  </div>
+
+  <!-- Secret Admin Auth Modal -->
+  <div class="admin-modal" id="adminAuthModal">
+    <div class="admin-box">
+      <h3>Admin Access</h3>
+      <input type="password" id="adminPasswordInput" class="admin-input" placeholder="Enter password (default: mgi2026)">
+      <div class="admin-btn-group">
+        <button class="claim-btn" onclick="verifyAdminPassword()">Unlock Panel</button>
+        <button class="claim-btn" style="background:#4A5568;" onclick="closeAdminAuth()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secret Admin Management Modal -->
+  <div class="admin-modal" id="adminPanelModal">
+    <div class="admin-box" style="max-height: 80vh; overflow-y: auto;">
+      <h3>Event Inventory Setup</h3>
+      <p style="font-size: 0.85rem; color:#A0AEC0; margin-bottom: 15px;">Modify prize names and available stock for this session.</p>
+      
+      <div id="adminPrizesContainer">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="admin-btn-group">
+        <button class="claim-btn" onclick="saveAdminSettings()">Save & Update Wheel</button>
+        <button class="claim-btn" style="background:#E53E3E;" onclick="resetStock()">Reset Initial Stock</button>
+        <button class="claim-btn" style="background:#4A5568;" onclick="closeAdminPanel()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Initial Default Configuration ---
+    let defaultPrizes = [
+      { id: 1, name: 'Mousepad', count: 20, icon: '🖱️', imgUrl: '' },
+      { id: 2, name: 'Panda Plush', count: 5, icon: '🐼', imgUrl: '' },
+      { id: 3, name: 'Tote Bag', count: 15, icon: '👜', imgUrl: '' },
+      { id: 4, name: 'Notebook', count: 20, icon: '📓', imgUrl: '' },
+      { id: 5, name: 'Cap', count: 20, icon: '🧢', imgUrl: '' }
+    ];
+
+    let prizes = JSON.parse(localStorage.getItem('mgi_prizes')) || defaultPrizes;
+    let adminPass = localStorage.getItem('mgi_admin_pass') || 'mgi2026';
+
+    const colors = ['#00A3E0', '#0A192F', '#00D2FF', '#0B132B', '#0077A3'];
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    
+    let currentAngle = 0;
+    let isSpinning = false;
+
+    // --- Draw Lucky Wheel ---
+    function drawWheel() {
+      const activePrizes = prizes.filter(p => p.count > 0);
+      const totalSlices = activePrizes.length;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (totalSlices === 0) {
+        ctx.fillStyle = '#1A202C';
+        ctx.beginPath();
+        ctx.arc(200, 200, 190, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 20px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText('ALL GIFTS CLAIMED', 200, 200);
+        spinBtn.disabled = true;
+        return;
+      }
+
+      spinBtn.disabled = false;
+      const sliceAngle = (2 * Math.PI) / totalSlices;
+
+      activePrizes.forEach((prize, i) => {
+        const startAngle = i * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
+
+        // Draw Sector
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.arc(200, 200, 190, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        // Slice Border
+        ctx.strokeStyle = '#00D2FF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Text & Icon Label
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px Segoe UI';
+        ctx.fillText(`${prize.icon} ${prize.name}`, 170, 6);
+        ctx.restore();
+      });
+    }
+
+    // --- Web Audio API (Sound FX) ---
+    function playClickSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    // --- Spin Wheel Action ---
+    spinBtn.addEventListener('click', () => {
+      if (isSpinning) return;
+
+      const activePrizes = prizes.filter(p => p.count > 0);
+      if (activePrizes.length === 0) return;
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+
+      // Select random winner from available stock
+      const winnerIndex = Math.floor(Math.random() * activePrizes.length);
+      const sliceAngle = 360 / activePrizes.length;
+
+      // Calculate Target Angle (Aligning top pointer)
+      const targetDegree = 360 - (winnerIndex * sliceAngle + sliceAngle / 2) + 270;
+      const extraRounds = (5 + Math.floor(Math.random() * 3)) * 360;
+      const totalRotation = extraRounds + (targetDegree % 360);
+
+      canvas.style.transition = 'transform 4s cubic-bezier(0.15, 0.99, 0.18, 1)';
+      canvas.style.transform = `rotate(${totalRotation}deg)`;
+
+      // Ticking Sound Interval
+      let tickInterval = setInterval(playClickSound, 150);
+
+      setTimeout(() => {
+        clearInterval(tickInterval);
+        isSpinning = false;
+        
+        // Deduct Inventory Stock
+        const winningPrize = activePrizes[winnerIndex];
+        winningPrize.count--;
+        localStorage.setItem('mgi_prizes', JSON.stringify(prizes));
+
+        // Display Winner Modal
+        showWinnerModal(winningPrize);
+
+        // Confetti Celebration
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+
+      }, 4000);
+    });
+
+    // --- Show Winner Pop-up Card ---
+    function showWinnerModal(prize) {
+      document.getElementById('modalPrizeTitle').innerText = prize.name;
+      
+      const imgBox = document.getElementById('modalImageContainer');
+      if (prize.imgUrl && prize.imgUrl.trim() !== '') {
+        imgBox.innerHTML = `<img src="${prize.imgUrl}" alt="${prize.name}">`;
+      } else {
+        imgBox.innerHTML = `<div class="prize-icon-fallback">${prize.icon}</div>`;
+      }
+
+      // Random Verification Code
+      const randomCode = '#MGI-' + Math.floor(1000 + Math.random() * 9000);
+      document.getElementById('modalVerifyCode').innerText = randomCode;
+
+      // Reset Claim Button State
+      const claimBtn = document.getElementById('claimBtn');
+      const badge = document.getElementById('claimedBadge');
+      claimBtn.style.display = 'block';
+      badge.style.display = 'none';
+
+      claimBtn.onclick = function() {
+        claimBtn.style.display = 'none';
+        badge.style.display = 'block';
+      };
+
+      document.getElementById('prizeModal').classList.add('active');
+    }
+
+    // Close Modal on Overlay Click
+    document.getElementById('prizeModal').addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        document.getElementById('prizeModal').classList.remove('active');
+        // Reset rotation position for seamless next spin
+        canvas.style.transition = 'none';
+        canvas.style.transform = 'rotate(0deg)';
+        drawWheel();
+      }
+    });
+
+    // --- Triple Tap Title Secret Admin Access ---
+    let headerClickCount = 0;
+    let clickTimer;
+    document.getElementById('brandHeader').addEventListener('click', () => {
+      headerClickCount++;
+      clearTimeout(clickTimer);
+      if (headerClickCount >= 3) {
+        headerClickCount = 0;
+        document.getElementById('adminAuthModal').style.display = 'flex';
+      } else {
+        clickTimer = setTimeout(() => { headerClickCount = 0; }, 800);
+      }
+    });
+
+    function closeAdminAuth() {
+      document.getElementById('adminAuthModal').style.display = 'none';
+    }
+
+    function verifyAdminPassword() {
+      const pass = document.getElementById('adminPasswordInput').value;
+      if (pass === adminPass) {
+        closeAdminAuth();
+        openAdminPanel();
+      } else {
+        alert('Incorrect Password');
+      }
+    }
+
+    function openAdminPanel() {
+      const container = document.getElementById('adminPrizesContainer');
+      container.innerHTML = '';
+
+      prizes.forEach((p, idx) => {
+        container.innerHTML += `
+          <div class="admin-item-row">
+            <input type="text" class="admin-input" value="${p.name}" id="pName_${idx}">
+            <input type="number" class="admin-input" value="${p.count}" id="pCount_${idx}">
+            <input type="text" class="admin-input" value="${p.imgUrl || ''}" placeholder="Image URL" id="pImg_${idx}">
+          </div>
+        `;
+      });
+
+      document.getElementById('adminPanelModal').style.display = 'flex';
+    }
+
+    function closeAdminPanel() {
+      document.getElementById('adminPanelModal').style.display = 'none';
+    }
+
+    function saveAdminSettings() {
+      prizes.forEach((p, idx) => {
+        p.name = document.getElementById(`pName_${idx}`).value;
+        p.count = parseInt(document.getElementById(`pCount_${idx}`).value) || 0;
+        p.imgUrl = document.getElementById(`pImg_${idx}`).value;
+      });
+
+      localStorage.setItem('mgi_prizes', JSON.stringify(prizes));
+      closeAdminPanel();
+      drawWheel();
+      alert('Settings Saved Successfully!');
+    }
+
+    function resetStock() {
+      prizes = JSON.parse(JSON.stringify(defaultPrizes));
+      localStorage.setItem('mgi_prizes', JSON.stringify(prizes));
+      openAdminPanel();
+      drawWheel();
+      alert('Stock Reset to Default Values!');
+    }
+
+    // Initialize Canvas on Load
+    drawWheel();
+  </script>
+</body>
+</html>
